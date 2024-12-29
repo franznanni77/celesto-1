@@ -1,8 +1,8 @@
 """
 01_Visualizza_Oroscopi.py
 ------------------------
-Pagina per visualizzare e filtrare gli oroscopi salvati nel database,
-con gestione avanzata delle date e della visualizzazione dei dati.
+Pagina per visualizzare, filtrare ed esportare gli oroscopi salvati nel database.
+Include gestione avanzata delle date e funzionalità di esportazione CSV.
 """
 
 import streamlit as st
@@ -17,7 +17,6 @@ def carica_oroscopi(_conn, filtri=None):
     La funzione utilizza conversioni esplicite per garantire la corretta 
     gestione dei formati temporali.
     """
-    # Definiamo la query base con conversioni esplicite delle date
     query = """
     SELECT 
         id,
@@ -35,7 +34,6 @@ def carica_oroscopi(_conn, filtri=None):
     
     params = {}
     
-    # Gestiamo i filtri con date già formattate
     if filtri:
         if filtri.get('nome'):
             query += " AND nome_utente LIKE :nome"
@@ -59,11 +57,9 @@ def carica_oroscopi(_conn, filtri=None):
     query += " ORDER BY data_generazione DESC"
     
     try:
-        # Eseguiamo la query e otteniamo il DataFrame
         df = _conn.query(query, params=params)
         
         if not df.empty:
-            # Convertiamo le stringhe di data in oggetti datetime
             df['data_nascita'] = pd.to_datetime(df['data_nascita']).dt.date
             df['data_generazione'] = pd.to_datetime(df['data_generazione']).dt.date
             
@@ -103,9 +99,45 @@ def mostra_filtri():
     
     return filtri
 
+def prepara_dati_per_export(df):
+    """
+    Prepara il DataFrame per l'esportazione in CSV.
+    """
+    try:
+        export_df = df.copy()
+        
+        if 'data_nascita' in export_df.columns:
+            export_df['data_nascita'] = export_df['data_nascita'].apply(lambda x: x.strftime('%d/%m/%Y') if pd.notnull(x) else '')
+        if 'data_generazione' in export_df.columns:
+            export_df['data_generazione'] = export_df['data_generazione'].apply(lambda x: x.strftime('%d/%m/%Y') if pd.notnull(x) else '')
+            
+        colonne = {
+            'nome_utente': 'Nome',
+            'data_nascita': 'Data di Nascita',
+            'ora_nascita': 'Ora di Nascita',
+            'citta_nascita': 'Città di Nascita',
+            'segno_zodiacale': 'Segno Zodiacale',
+            'ascendente': 'Ascendente',
+            'testo_oroscopo': 'Oroscopo',
+            'data_generazione': 'Data Generazione'
+        }
+        export_df = export_df.rename(columns=colonne)
+        
+        colonne_ordinate = [
+            'Nome', 'Data di Nascita', 'Ora di Nascita', 'Città di Nascita',
+            'Segno Zodiacale', 'Ascendente', 'Oroscopo', 'Data Generazione'
+        ]
+        export_df = export_df[colonne_ordinate]
+        
+        return export_df
+        
+    except Exception as e:
+        st.error(f"Errore nella preparazione dei dati per l'export: {str(e)}")
+        return pd.DataFrame()
+
 def formatta_data(data):
     """
-    Formatta una data in modo sicuro, gestendo anche valori nulli o invalidi.
+    Formatta una data in modo sicuro.
     """
     try:
         if isinstance(data, (date, datetime)):
@@ -116,7 +148,7 @@ def formatta_data(data):
 
 def formatta_ora(ora):
     """
-    Formatta un'ora in modo sicuro, gestendo anche valori nulli o invalidi.
+    Formatta un'ora in modo sicuro.
     """
     try:
         return f"{ora[:5]}" if ora else "Ora non specificata"
@@ -151,7 +183,23 @@ def main():
                 st.metric("Segni unici", df['segno_zodiacale'].nunique())
             with col3:
                 st.metric("Persone diverse", df['nome_utente'].nunique())
-        
+            
+            # Sezione esportazione
+            st.markdown("### Esporta Dati")
+            export_df = prepara_dati_per_export(df)
+            
+            if not export_df.empty:
+                csv = export_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Scarica dati in formato CSV",
+                    data=csv,
+                    file_name=f"oroscopi_export_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                    mime="text/csv",
+                    help="Clicca per scaricare i dati visualizzati in formato CSV"
+                )
+            
+            # Visualizzazione oroscopi
+            st.markdown("### Oroscopi")
             for _, row in df.iterrows():
                 with st.expander(
                     f"{row['nome_utente']} - {row['segno_zodiacale']} "
