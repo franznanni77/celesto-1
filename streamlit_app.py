@@ -2,12 +2,12 @@
 streamlit_app.py
 ---------------
 Applicazione principale Streamlit per il calcolo del profilo astrologico personale 
-e la generazione dell'oroscopo personalizzato utilizzando AI. Include navigazione 
-avanzata e gestione del tema dark/light.
+e la generazione dell'oroscopo personalizzato utilizzando AI.
 """
 
 import streamlit as st
 from datetime import datetime, timedelta, date
+from sqlalchemy import text
 import pytz
 from calcoli_astrologici import valida_numero_cellulare, genera_dati_astrologici
 from generatore_AI import GeneratoreOroscopo
@@ -15,7 +15,6 @@ from generatore_AI import GeneratoreOroscopo
 def get_default_date():
     """
     Calcola la data di default: giorno e mese correnti ma dell'anno 1980.
-    Questo mantiene il giorno e mese attuali ma nel passato.
     """
     today = datetime.now()
     return datetime(1980, today.month, today.day).date()
@@ -27,10 +26,56 @@ def get_min_date():
     today = datetime.now()
     return datetime(today.year - 100, today.month, today.day).date()
 
+def salva_oroscopo_db(_conn, dati_utente: dict, testo_oroscopo: str):
+    """
+    Salva l'oroscopo generato nel database usando la struttura corretta della tabella.
+    """
+    try:
+        query = """
+        INSERT INTO oroscopi (
+            nome_utente,
+            data_nascita,
+            segno_zodiacale,
+            ascendente,
+            testo_oroscopo,
+            citta_nascita,
+            ora_nascita,
+            data_generazione
+        ) VALUES (
+            :nome,
+            :data_nascita,
+            :segno_zodiacale,
+            :ascendente,
+            :testo_oroscopo,
+            :citta_nascita,
+            :ora_nascita,
+            CURRENT_TIMESTAMP
+        )
+        """
+        
+        params = {
+            "nome": dati_utente.get("nome", ""),
+            "data_nascita": dati_utente.get("data_nascita", ""),
+            "segno_zodiacale": dati_utente.get("segno_zodiacale", ""),
+            "ascendente": dati_utente.get("ascendente", ""),
+            "testo_oroscopo": testo_oroscopo,
+            "citta_nascita": dati_utente.get("citta_nascita", ""),
+            "ora_nascita": dati_utente.get("ora_nascita", "")
+        }
+        
+        with _conn.session as s:
+            s.execute(text(query), params)
+            s.commit()
+            
+        return True
+        
+    except Exception as e:
+        print(f"Errore nel salvataggio dell'oroscopo: {str(e)}")
+        return False
+
 def load_custom_css():
     """
     Carica gli stili CSS personalizzati per l'interfaccia utente.
-    Include stili per i bottoni, metriche, date e navigazione.
     """
     st.markdown("""
         <style>
@@ -117,23 +162,6 @@ Scopri il tuo profilo astrologico completo e ricevi un oroscopo personalizzato
 basato sulle tue configurazioni astrali uniche.
 """)
 
-# Sezione informativa sulla precisione del calcolo
-with st.expander("ℹ️ Informazioni sulla precisione dei calcoli"):
-    st.markdown("""
-    ### 🔭 Precisione Astronomica
-    Questa applicazione include:
-    - Correzione stagionale basata sul mese di nascita
-    - Correzione per il moto di precessione degli equinozi
-    - Calcolo preciso dell'ora siderale
-    - Validazione del formato numero di telefono italiano
-    - Generazione di oroscopo personalizzato con AI
-    - Salvataggio sicuro dei dati nel database
-    
-    La precessione degli equinozi è un fenomeno astronomico che causa uno spostamento 
-    graduale dei punti equinoziali di circa 1 grado ogni 72 anni, influenzando il 
-    calcolo dell'ascendente nel lungo periodo.
-    """)
-
 # Form per l'inserimento dei dati
 with st.form("dati_personali"):
     col1, col2 = st.columns(2)
@@ -141,7 +169,6 @@ with st.form("dati_personali"):
     with col1:
         nome = st.text_input("Nome", help="Inserisci il tuo nome completo")
         
-        # Input della data con formato europeo e range personalizzato
         data_nascita = st.date_input(
             "Data di nascita",
             value=get_default_date(),
@@ -151,7 +178,6 @@ with st.form("dati_personali"):
             format="DD/MM/YYYY"
         )
         
-        # Informazioni sul range di date disponibile
         st.markdown(f"""
         <div class="date-info">
         📅 Puoi selezionare una data tra il {get_min_date().strftime("%d/%m/%Y")} 
@@ -174,7 +200,6 @@ with st.form("dati_personali"):
             help="Inserisci la città dove sei nato/a"
         )
     
-    # Nota informativa sulla formattazione del numero
     st.info("""
     📱 **Formato numero di cellulare accettato:**
     - Con prefisso internazionale: +39 XXX XXXXXXX o 0039 XXX XXXXXXX
@@ -182,7 +207,6 @@ with st.form("dati_personali"):
     - Spazi e trattini sono opzionali
     """)
     
-    # Pulsante per inviare il form
     submit = st.form_submit_button("Calcola il tuo profilo astrologico")
 
 # Elaborazione dei dati e visualizzazione dei risultati
@@ -199,26 +223,25 @@ if submit:
     if not numero_valido:
         st.error(f"Errore nel numero di cellulare: {messaggio_validazione}")
     elif nome and data_nascita and ora_nascita and citta_nascita:
-        # Mostra un indicatore di caricamento
         with st.spinner("Elaborazione del tuo profilo astrologico in corso..."):
             try:
                 # Generiamo i dati astrologici
                 dati_astrologici = genera_dati_astrologici(data_nascita, ora_nascita)
                 
-                # Aggiungiamo il nome ai dati astrologici per il generatore AI
-                # Aggiungiamo il nome ai dati astrologici per il generatore AI
+                # Prepariamo i dati completi per il generatore AI e il database
                 dati_completi = {
-                    **dati_astrologici,  # Tutti i dati astrologici
-                    "nome": nome,  # Il nome dell'utente
-                    "data_nascita": data_nascita.strftime('%Y-%m-%d'),  # Convertiamo la data in stringa
+                    "nome": nome,
+                    "data_nascita": data_nascita.strftime('%Y-%m-%d'),
+                    "segno_zodiacale": dati_astrologici["segno_zodiacale"],
+                    "ascendente": dati_astrologici["ascendente"],
                     "citta_nascita": citta_nascita,
-                    "ora_nascita": ora_nascita.strftime('%H:%M')  # Convertiamo l'ora in stringa
-                    }
+                    "ora_nascita": ora_nascita.strftime('%H:%M'),
+                    **dati_astrologici  # Altri dati astrologici
+                }
                 
                 # Visualizziamo i risultati principali
                 st.success(f"Profilo astrologico di {nome}")
                 
-                # Metriche principali in tre colonne
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("Segno Zodiacale", dati_astrologici["segno_zodiacale"])
@@ -227,7 +250,6 @@ if submit:
                 with col3:
                     st.metric("Età", dati_astrologici["eta"])
                 
-                # Dettagli aggiuntivi
                 st.write("### Dettagli del tuo profilo")
                 st.write(f"""
                 **Elementi base del tuo tema natale:**
@@ -236,14 +258,20 @@ if submit:
                 - Pianeti rilevanti: {' e '.join(dati_astrologici['pianeti_rilevanti'])}
                 """)
                 
-                # Generazione dell'oroscopo personalizzato
+                # Generazione e salvataggio dell'oroscopo
                 st.write("### 🔮 Il tuo oroscopo personalizzato")
                 try:
+                    # Inizializziamo la connessione al database
+                    conn = st.connection('mysql', type='sql')
+                    
                     generatore = GeneratoreOroscopo()
                     with st.spinner("Generazione del tuo oroscopo personalizzato..."):
                         oroscopo = generatore.genera_oroscopo(dati_completi)
-                    
-                    # Visualizzazione dell'oroscopo in un box dedicato
+                        
+                        # Salviamo l'oroscopo nel database
+                        if salva_oroscopo_db(conn, dati_completi, oroscopo):
+                            st.success("Oroscopo salvato con successo nel database!")
+                        
                     st.markdown(f"""
                     <div class="oroscopo-container">
                         <div class="oroscopo-text">
@@ -257,6 +285,7 @@ if submit:
                     Si è verificato un errore nella generazione dell'oroscopo.
                     Dettagli: {str(e)}
                     """)
+                    print(f"Errore dettagliato: {str(e)}")
                 
             except Exception as e:
                 st.error("""
