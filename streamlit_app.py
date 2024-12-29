@@ -1,9 +1,9 @@
 """
 streamlit_app.py
 ---------------
-Applicazione Streamlit per il calcolo del profilo astrologico personale e la generazione
-dell'oroscopo personalizzato utilizzando AI. Include gestione avanzata delle date
-in formato europeo e salvataggio nel database MySQL.
+Applicazione principale Streamlit per il calcolo del profilo astrologico personale 
+e la generazione dell'oroscopo personalizzato utilizzando AI. Include navigazione 
+avanzata e gestione del tema dark/light.
 """
 
 import streamlit as st
@@ -27,82 +27,13 @@ def get_min_date():
     today = datetime.now()
     return datetime(today.year - 100, today.month, today.day).date()
 
-def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
-    """
-    Salva l'oroscopo generato nel database con gestione SQL corretta.
-    """
-    try:
-        # Importiamo text da sqlalchemy per gestire correttamente le query testuali
-        from sqlalchemy import text
-        
-        # Inizializza la connessione
-        conn = st.connection('mysql', type='sql')
-        print("Connessione al database stabilita")
-        
-        # Query di inserimento avvolta in text()
-        query = text("""
-        INSERT INTO oroscopi (
-            nome_utente, 
-            data_nascita, 
-            segno_zodiacale, 
-            ascendente, 
-            testo_oroscopo, 
-            citta_nascita, 
-            ora_nascita
-        ) VALUES (
-            :nome,
-            :data_nascita,
-            :segno_zodiacale,
-            :ascendente,
-            :testo_oroscopo,
-            :citta_nascita,
-            :ora_nascita
-        )
-        """)
-        
-        # Preparazione dei parametri con verifica dei valori
-        params = {
-            "nome": str(dati_utente.get('nome', '')),
-            "data_nascita": dati_utente.get('data_nascita'),
-            "segno_zodiacale": str(dati_utente.get('segno_zodiacale', '')),
-            "ascendente": str(dati_utente.get('ascendente', '')),
-            "testo_oroscopo": str(testo_oroscopo),
-            "citta_nascita": str(dati_utente.get('citta_nascita', '')),
-            "ora_nascita": dati_utente.get('ora_nascita')
-        }
-        
-        # Debug: stampiamo i parametri
-        print("Parametri:", params)
-        
-        # Esecuzione della query con gestione esplicita della sessione
-        with conn.session as s:
-            try:
-                s.execute(query, params)
-                s.commit()
-                print("Query eseguita con successo")
-                st.success("Oroscopo salvato con successo nel database!")
-            except Exception as query_error:
-                print(f"Errore durante l'esecuzione della query: {str(query_error)}")
-                raise query_error
-        
-    except Exception as e:
-        error_message = f"Errore dettagliato: {str(e)}\nTipo di errore: {type(e)}"
-        print(error_message)
-        st.error(f"Si è verificato un errore durante il salvataggio: {str(e)}")
-        st.code(error_message)
-# Configurazione della pagina Streamlit
-st.set_page_config(
-    page_title="Calcolo Astrologico Personalizzato",
-    page_icon="🌟",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Funzione per lo stile CSS personalizzato
 def load_custom_css():
+    """
+    Carica gli stili CSS personalizzati per l'interfaccia utente.
+    Include stili per i bottoni, metriche, date e navigazione.
+    """
     st.markdown("""
         <style>
-        /* Stili esistenti migliorati */
         .stButton>button {
             width: 100%;
             background-color: #4F8BF9;
@@ -124,7 +55,24 @@ def load_custom_css():
             opacity: 0.8;
         }
         
-        /* Nuovi stili per l'oroscopo */
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background-color: rgba(79, 139, 249, 0.1);
+            color: inherit;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(79, 139, 249, 0.2);
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-button:hover {
+            background-color: rgba(79, 139, 249, 0.2);
+            border-color: rgba(79, 139, 249, 0.3);
+        }
+        
         .oroscopo-container {
             background-color: rgba(255, 255, 255, 0.05);
             padding: 25px;
@@ -135,38 +83,35 @@ def load_custom_css():
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
-        /* Stili specifici per il testo dell'oroscopo */
         .oroscopo-text {
             line-height: 1.6;
             font-size: 1.1em;
             color: inherit;
         }
-        
-        /* Stili per i numeri fortunati */
-        .numeri-fortunati {
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-weight: bold;
-            color: inherit;
-        }
-        
-        /* Miglioriamo la leggibilità delle metriche */
-        .metric-container {
-            background-color: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: inherit;
-        }
         </style>
     """, unsafe_allow_html=True)
 
-# Carica lo stile CSS
+# Configurazione della pagina Streamlit
+st.set_page_config(
+    page_title="Calcolo Astrologico Personalizzato",
+    page_icon="🌟",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Carica gli stili CSS personalizzati
 load_custom_css()
 
-# Titolo e descrizione dell'applicazione
+# Titolo e barra di navigazione
 st.title("🌟 Profilo Astrologico Personale")
+
+# Link alla pagina di visualizzazione archivio
+st.markdown("""
+<a href="Visualizza_Oroscopi" target="_self" class="nav-button">
+    📚 Visualizza Archivio Oroscopi
+</a>
+""", unsafe_allow_html=True)
+
 st.write("""
 Scopri il tuo profilo astrologico completo e ricevi un oroscopo personalizzato 
 basato sulle tue configurazioni astrali uniche.
@@ -264,9 +209,9 @@ if submit:
                 dati_completi = {
                     **dati_astrologici,  # Tutti i dati astrologici
                     "nome": nome,  # Il nome dell'utente
-                     "data_nascita": data_nascita.strftime('%Y-%m-%d'),  # Convertiamo in stringa
-                     "citta_nascita": citta_nascita,  # Città rimane stringa
-                     "ora_nascita": ora_nascita.strftime('%H:%M:%S')  # Convertiamo in stringa
+                    "data_nascita": data_nascita,  # Aggiunto per il database
+                    "citta_nascita": citta_nascita,  # Aggiunto per il database
+                    "ora_nascita": ora_nascita  # Aggiunto per il database
                 }
                 
                 # Visualizziamo i risultati principali
@@ -296,18 +241,15 @@ if submit:
                     generatore = GeneratoreOroscopo()
                     with st.spinner("Generazione del tuo oroscopo personalizzato..."):
                         oroscopo = generatore.genera_oroscopo(dati_completi)
-                        
-                        # Salva l'oroscopo nel database
-                        salva_oroscopo_db(dati_completi, oroscopo)
                     
                     # Visualizzazione dell'oroscopo in un box dedicato
-                        st.markdown(f"""
-                            <div class="oroscopo-container">
-                                 <div class="oroscopo-text">
-                                    {oroscopo}
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="oroscopo-container">
+                        <div class="oroscopo-text">
+                            {oroscopo}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                 except Exception as e:
                     st.error(f"""
