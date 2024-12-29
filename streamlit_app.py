@@ -2,7 +2,7 @@
 streamlit_app.py
 ---------------
 Applicazione principale Streamlit per il calcolo del profilo astrologico personale 
-e la generazione dell'oroscopo personalizzato utilizzando AI.
+e la generazione dell'oroscopo personalizzato utilizzando AI. Include invio WhatsApp.
 """
 
 import streamlit as st
@@ -11,6 +11,7 @@ from sqlalchemy import text
 import pytz
 from calcoli_astrologici import valida_numero_cellulare, genera_dati_astrologici
 from generatore_AI import GeneratoreOroscopo
+from whatsapp_sender import WhatsAppSender
 
 def get_default_date():
     """
@@ -136,7 +137,7 @@ def load_custom_css():
         </style>
     """, unsafe_allow_html=True)
 
-# Configurazione della pagina Streamlit
+    # Configurazione della pagina Streamlit
 st.set_page_config(
     page_title="Calcolo Astrologico Personalizzato",
     page_icon="🌟",
@@ -258,49 +259,32 @@ if submit:
                 - Pianeti rilevanti: {' e '.join(dati_astrologici['pianeti_rilevanti'])}
                 """)
                 
-               # Generazione e salvataggio dell'oroscopo
-st.write("### 🔮 Il tuo oroscopo personalizzato")
-try:
-    # Inizializziamo la connessione al database
-    conn = st.connection('mysql', type='sql')
-    
-    generatore = GeneratoreOroscopo()
-    with st.spinner("Generazione del tuo oroscopo personalizzato..."):
-        oroscopo = generatore.genera_oroscopo(dati_completi)
-        
-        # Salviamo l'oroscopo nel database
-        if salva_oroscopo_db(conn, dati_completi, oroscopo):
-            st.success("Oroscopo salvato con successo nel database!")
-            
-            # Aggiungiamo qui l'invio WhatsApp
-            try:
-                from whatsapp_sender import WhatsAppSender
-                
-                with st.spinner("Invio dell'oroscopo via WhatsApp..."):
-                    sender = WhatsAppSender()
-                    if sender.invia_oroscopo(cellulare, dati_completi, oroscopo):
-                        st.success("Oroscopo inviato via WhatsApp!")
-                    else:
-                        st.warning("Non è stato possibile inviare l'oroscopo via WhatsApp. "
-                                "Puoi comunque visualizzarlo qui sopra.")
-            except Exception as e:
-                print(f"Errore nell'invio WhatsApp: {str(e)}")
-                st.warning("Servizio WhatsApp temporaneamente non disponibile.")
-        
-    st.markdown(f"""
-    <div class="oroscopo-container">
-        <div class="oroscopo-text">
-            {oroscopo}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-except Exception as e:
-    st.error(f"""
-    Si è verificato un errore nella generazione dell'oroscopo.
-    Dettagli: {str(e)}
-    """)
-    print(f"Errore dettagliato: {str(e)}")
+                # Generazione e salvataggio dell'oroscopo
+                st.write("### 🔮 Il tuo oroscopo personalizzato")
+                try:
+                    # Inizializziamo la connessione al database
+                    conn = st.connection('mysql', type='sql')
+                    
+                    generatore = GeneratoreOroscopo()
+                    with st.spinner("Generazione del tuo oroscopo personalizzato..."):
+                        oroscopo = generatore.genera_oroscopo(dati_completi)
+                        
+                        # Salviamo l'oroscopo nel database
+                        if salva_oroscopo_db(conn, dati_completi, oroscopo):
+                            st.success("Oroscopo salvato con successo nel database!")
+                            
+                            # Inviamo l'oroscopo via WhatsApp
+                            try:
+                                with st.spinner("Invio dell'oroscopo via WhatsApp..."):
+                                    sender = WhatsAppSender()
+                                    if sender.invia_oroscopo(cellulare, dati_completi, oroscopo):
+                                        st.success("Oroscopo inviato via WhatsApp!")
+                                    else:
+                                        st.warning("Non è stato possibile inviare l'oroscopo via WhatsApp. "
+                                                "Puoi comunque visualizzarlo qui sopra.")
+                            except Exception as e:
+                                print(f"Errore nell'invio WhatsApp: {str(e)}")
+                                st.warning("Servizio WhatsApp temporaneamente non disponibile.")
                         
                     st.markdown(f"""
                     <div class="oroscopo-container">
