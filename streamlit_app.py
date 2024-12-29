@@ -2,14 +2,30 @@
 streamlit_app.py
 ---------------
 Applicazione Streamlit per il calcolo del profilo astrologico personale e la generazione
-dell'oroscopo personalizzato utilizzando AI.
+dell'oroscopo personalizzato utilizzando AI. Include gestione avanzata delle date
+in formato europeo e range personalizzato.
 """
 
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import pytz
 from calcoli_astrologici import valida_numero_cellulare, genera_dati_astrologici
 from generatore_AI import GeneratoreOroscopo
+
+def get_default_date():
+    """
+    Calcola la data di default: giorno e mese correnti ma dell'anno 1980.
+    Questo mantiene il giorno e mese attuali ma nel passato.
+    """
+    today = datetime.now()
+    return datetime(1980, today.month, today.day).date()
+
+def get_min_date():
+    """
+    Calcola la data minima consentita: 100 anni fa da oggi.
+    """
+    today = datetime.now()
+    return datetime(today.year - 100, today.month, today.day).date()
 
 # Configurazione della pagina Streamlit
 st.set_page_config(
@@ -32,6 +48,11 @@ def load_custom_css():
             background-color: #f0f2f6;
             padding: 10px;
             border-radius: 5px;
+        }
+        .date-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 1em;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -56,6 +77,10 @@ with st.expander("ℹ️ Informazioni sulla precisione dei calcoli"):
     - Calcolo preciso dell'ora siderale
     - Validazione del formato numero di telefono italiano
     - Generazione di oroscopo personalizzato con AI
+    
+    La precessione degli equinozi è un fenomeno astronomico che causa uno spostamento 
+    graduale dei punti equinoziali di circa 1 grado ogni 72 anni, influenzando il 
+    calcolo dell'ascendente nel lungo periodo.
     """)
 
 # Form per l'inserimento dei dati
@@ -64,12 +89,25 @@ with st.form("dati_personali"):
     
     with col1:
         nome = st.text_input("Nome", help="Inserisci il tuo nome completo")
+        
+        # Input della data con formato europeo e range personalizzato
         data_nascita = st.date_input(
             "Data di nascita",
-            min_value=datetime(1900, 1, 1).date(),
+            value=get_default_date(),
+            min_value=get_min_date(),
             max_value=datetime.now().date(),
-            help="Seleziona la tua data di nascita"
+            help="Seleziona la tua data di nascita (formato: DD/MM/YYYY)",
+            format="DD/MM/YYYY"
         )
+        
+        # Informazioni sul range di date disponibile
+        st.markdown(f"""
+        <div class="date-info">
+        📅 Puoi selezionare una data tra il {get_min_date().strftime("%d/%m/%Y")} 
+        e il {datetime.now().date().strftime("%d/%m/%Y")}
+        </div>
+        """, unsafe_allow_html=True)
+        
         cellulare = st.text_input(
             "Numero di cellulare",
             help="Inserisci un numero di cellulare italiano (es. +39 345 1234567)"
@@ -98,6 +136,12 @@ with st.form("dati_personali"):
 
 # Elaborazione dei dati e visualizzazione dei risultati
 if submit:
+    # Validazione dell'età
+    anni = (datetime.now().date() - data_nascita).days / 365.25
+    if anni > 90:
+        st.warning(f"Hai selezionato una data di {int(anni)} anni fa. "
+                  "Assicurati che sia corretto.")
+    
     # Validazione del numero di cellulare
     numero_valido, messaggio_validazione = valida_numero_cellulare(cellulare)
     
@@ -115,9 +159,6 @@ if submit:
                     **dati_astrologici,  # Tutti i dati astrologici
                     "nome": nome  # Il nome dell'utente
                 }
-                
-                # Debug - Visualizza i dati che verranno inviati al generatore
-                # print("Dati inviati al generatore:", dati_completi)
                 
                 # Visualizziamo i risultati principali
                 st.success(f"Profilo astrologico di {nome}")
