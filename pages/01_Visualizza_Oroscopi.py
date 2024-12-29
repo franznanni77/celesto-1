@@ -18,19 +18,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=300)  # Cache per 5 minuti
-def carica_oroscopi(conn, filtri=None):
+def carica_oroscopi(_conn, filtri=None):
     """
     Recupera gli oroscopi dal database applicando i filtri specificati.
     La funzione utilizza il caching di Streamlit per migliorare le performance.
+    L'underscore davanti a 'conn' indica a Streamlit di non tentare di memorizzare
+    nella cache l'oggetto di connessione.
     
     Args:
-        conn: Connessione al database Streamlit
+        _conn: Connessione al database Streamlit (con underscore per evitare il caching)
         filtri: Dizionario contenente i criteri di filtro (opzionale)
     
     Returns:
         DataFrame pandas contenente i risultati della query
     """
-    # Costruiamo la query come stringa normale invece che come TextClause
+    # Costruiamo la query base
     query = """
     SELECT 
         id,
@@ -53,29 +55,7 @@ def carica_oroscopi(conn, filtri=None):
     if filtri:
         if filtri.get('nome'):
             query += " AND nome_utente LIKE :nome"
-            params['nome'] = f"%{filtri['nome']}%"
-            
-        if filtri.get('segno'):
-            query += " AND segno_zodiacale = :segno"
-            params['segno'] = filtri['segno']
-            
-        if filtri.get('periodo'):
-            if filtri['periodo'] == 'ultima_settimana':
-                query += " AND data_generazione >= :data_inizio"
-                params['data_inizio'] = datetime.now() - timedelta(days=7)
-            elif filtri['periodo'] == 'ultimo_mese':
-                query += " AND data_generazione >= :data_inizio"
-                params['data_inizio'] = datetime.now() - timedelta(days=30)
-    
-    # Aggiungiamo l'ordinamento
-    query += " ORDER BY data_generazione DESC"
-    
-    try:
-        # Eseguiamo la query direttamente senza convertirla in TextClause
-        return conn.query(query, params=params)
-    except Exception as e:
-        st.error(f"Errore nell'esecuzione della query: {str(e)}")
-        return pd.DataFrame()  # Restituiamo un DataFrame vuoto in caso di errore
+            params['nome'] = f"%{filtri['nome'
 
 def mostra_filtri():
     """
