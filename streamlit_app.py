@@ -3,7 +3,7 @@ streamlit_app.py
 ---------------
 Applicazione Streamlit per il calcolo del profilo astrologico personale e la generazione
 dell'oroscopo personalizzato utilizzando AI. Include gestione avanzata delle date
-in formato europeo e salvataggio nel database MySQL.
+in formato europeo e range personalizzato.
 """
 
 import streamlit as st
@@ -26,54 +26,6 @@ def get_min_date():
     """
     today = datetime.now()
     return datetime(today.year - 100, today.month, today.day).date()
-
-def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
-    """
-    Salva l'oroscopo generato nel database usando la connessione Streamlit.
-    
-    Args:
-        dati_utente: Dizionario contenente i dati dell'utente
-        testo_oroscopo: Il testo dell'oroscopo generato
-    """
-    try:
-        # Inizializza la connessione
-        conn = st.connection('mysql', type='sql')
-        
-        # Prepara la query di inserimento
-        query = """
-        INSERT INTO oroscopi (
-            nome_utente, 
-            data_nascita, 
-            segno_zodiacale, 
-            ascendente, 
-            testo_oroscopo, 
-            citta_nascita, 
-            ora_nascita
-        ) VALUES (:nome, :data_nascita, :segno_zodiacale, :ascendente, :testo_oroscopo, :citta_nascita, :ora_nascita)
-        """
-        
-        # Prepara i parametri
-        params = {
-            "nome": dati_utente["nome"],
-            "data_nascita": dati_utente.get("data_nascita").strftime('%Y-%m-%d'),
-            "segno_zodiacale": dati_utente.get("segno_zodiacale"),
-            "ascendente": dati_utente.get("ascendente"),
-            "testo_oroscopo": testo_oroscopo,
-            "citta_nascita": dati_utente.get("citta_nascita"),
-            "ora_nascita": dati_utente.get("ora_nascita").strftime('%H:%M:%S')
-        }
-        
-        # Esegui la query
-        with conn.session as s:
-            s.execute(query, params)
-            s.commit()
-        
-        # Mostra conferma
-        st.success("Oroscopo salvato con successo nel database!")
-        
-    except Exception as e:
-        st.error(f"Errore durante il salvataggio dell'oroscopo: {str(e)}")
-        print(f"Errore dettagliato: {str(e)}")
 
 # Configurazione della pagina Streamlit
 st.set_page_config(
@@ -125,7 +77,6 @@ with st.expander("ℹ️ Informazioni sulla precisione dei calcoli"):
     - Calcolo preciso dell'ora siderale
     - Validazione del formato numero di telefono italiano
     - Generazione di oroscopo personalizzato con AI
-    - Salvataggio sicuro dei dati nel database
     
     La precessione degli equinozi è un fenomeno astronomico che causa uno spostamento 
     graduale dei punti equinoziali di circa 1 grado ogni 72 anni, influenzando il 
@@ -206,10 +157,7 @@ if submit:
                 # Aggiungiamo il nome ai dati astrologici per il generatore AI
                 dati_completi = {
                     **dati_astrologici,  # Tutti i dati astrologici
-                    "nome": nome,  # Il nome dell'utente
-                    "data_nascita": data_nascita,  # Aggiunto per il database
-                    "citta_nascita": citta_nascita,  # Aggiunto per il database
-                    "ora_nascita": ora_nascita  # Aggiunto per il database
+                    "nome": nome  # Il nome dell'utente
                 }
                 
                 # Visualizziamo i risultati principali
@@ -239,9 +187,6 @@ if submit:
                     generatore = GeneratoreOroscopo()
                     with st.spinner("Generazione del tuo oroscopo personalizzato..."):
                         oroscopo = generatore.genera_oroscopo(dati_completi)
-                        
-                        # Salva l'oroscopo nel database
-                        salva_oroscopo_db(dati_completi, oroscopo)
                     
                     # Visualizzazione dell'oroscopo in un box dedicato
                     st.markdown(f"""
@@ -268,6 +213,6 @@ if submit:
 # Footer informativo
 st.markdown("""
 ---
-📝 **Nota sulla privacy**: I dati inseriti vengono utilizzati per il calcolo del 
-profilo astrologico e vengono salvati in modo sicuro nel nostro database.
+📝 **Nota sulla privacy**: I dati inseriti vengono utilizzati solo per il calcolo del 
+profilo astrologico e non vengono memorizzati.
 """)
