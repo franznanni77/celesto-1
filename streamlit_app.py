@@ -29,14 +29,20 @@ def get_min_date():
 
 def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
     """
-    Salva l'oroscopo generato nel database usando PyMySQL come driver.
-    Gestisce le date già convertite in stringhe.
+    Salva l'oroscopo generato nel database con gestione dettagliata degli errori.
     """
     try:
+        # Debug: stampiamo i dati che stiamo per salvare
+        print("Tentativo di salvataggio con i seguenti dati:")
+        print(f"Nome: {dati_utente.get('nome')}")
+        print(f"Data nascita: {dati_utente.get('data_nascita')}")
+        print(f"Segno: {dati_utente.get('segno_zodiacale')}")
+        
         # Inizializza la connessione
         conn = st.connection('mysql', type='sql')
+        print("Connessione al database stabilita")
         
-        # Usa direttamente le stringhe di data e ora già formattate
+        # Query di inserimento
         query = """
         INSERT INTO oroscopi (
             nome_utente, 
@@ -57,27 +63,40 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
         )
         """
         
-        # Usa i dati già convertiti in stringhe
+        # Preparazione dei parametri con verifica dei valori
         params = {
-            "nome": dati_utente["nome"],
-            "data_nascita": dati_utente["data_nascita"],  # Già in formato stringa
-            "segno_zodiacale": dati_utente.get("segno_zodiacale"),
-            "ascendente": dati_utente.get("ascendente"),
-            "testo_oroscopo": testo_oroscopo,
-            "citta_nascita": dati_utente.get("citta_nascita"),
-            "ora_nascita": dati_utente["ora_nascita"]  # Già in formato stringa
+            "nome": str(dati_utente.get('nome', '')),
+            "data_nascita": dati_utente.get('data_nascita'),
+            "segno_zodiacale": str(dati_utente.get('segno_zodiacale', '')),
+            "ascendente": str(dati_utente.get('ascendente', '')),
+            "testo_oroscopo": str(testo_oroscopo),
+            "citta_nascita": str(dati_utente.get('citta_nascita', '')),
+            "ora_nascita": dati_utente.get('ora_nascita')
         }
         
-        # Esegui la query
-        with conn.session as s:
-            s.execute(query, params)
-            s.commit()
+        # Debug: stampiamo la query e i parametri
+        print("Query da eseguire:", query)
+        print("Parametri:", params)
         
-        st.success("Oroscopo salvato con successo nel database!")
+        # Esecuzione della query con gestione esplicita della sessione
+        with conn.session as s:
+            try:
+                s.execute(query, params)
+                s.commit()
+                print("Query eseguita con successo")
+                st.success("Oroscopo salvato con successo nel database!")
+            except Exception as query_error:
+                print(f"Errore durante l'esecuzione della query: {str(query_error)}")
+                raise query_error
         
     except Exception as e:
-        print(f"Errore dettagliato durante il salvataggio: {str(e)}")
-        st.error("Si è verificato un errore durante il salvataggio dell'oroscopo.")
+        error_message = f"Errore dettagliato: {str(e)}\nTipo di errore: {type(e)}"
+        print(error_message)
+        st.error(f"Si è verificato un errore durante il salvataggio: {str(e)}")
+        
+        # Mostriamo informazioni aggiuntive per il debug
+        st.write("Dettagli per il debug (visibili solo in sviluppo):")
+        st.code(error_message)
 
 # Configurazione della pagina Streamlit
 st.set_page_config(
