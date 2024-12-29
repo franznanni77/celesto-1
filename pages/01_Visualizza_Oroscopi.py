@@ -11,18 +11,19 @@ import pandas as pd
 from sqlalchemy import text
 
 @st.cache_data(ttl=300)  # Cache per 5 minuti
+
 def carica_oroscopi(_conn, filtri=None):
     """
     Recupera gli oroscopi dal database applicando i filtri specificati.
+    Gestisce correttamente le date per il filtraggio temporale.
     
     Args:
-        _conn: Connessione al database Streamlit (con underscore per evitare il caching)
+        _conn: Connessione al database Streamlit
         filtri: Dizionario contenente i criteri di filtro (opzionale)
     
     Returns:
         DataFrame pandas contenente i risultati della query
     """
-    # Costruiamo la query base con selezione di tutti i campi necessari
     query = """
     SELECT 
         id,
@@ -38,39 +39,50 @@ def carica_oroscopi(_conn, filtri=None):
     WHERE 1=1
     """
     
-    # Inizializziamo il dizionario dei parametri
     params = {}
     
-    # Aggiungiamo i filtri se specificati
     if filtri:
-        # Filtro per nome con LIKE
         if filtri.get('nome'):
             query += " AND nome_utente LIKE :nome"
             params['nome'] = f"%{filtri['nome']}%"
             
-        # Filtro per segno zodiacale (match esatto)
         if filtri.get('segno'):
             query += " AND segno_zodiacale = :segno"
             params['segno'] = filtri['segno']
             
-        # Filtro per periodo temporale
+        # Gestione migliorata del filtraggio per data
         if filtri.get('periodo'):
+            data_corrente = datetime.now()
             if filtri['periodo'] == 'ultima_settimana':
+                # Calcoliamo la data di inizio come data effettiva
+                data_inizio = data_corrente - timedelta(days=7)
                 query += " AND data_generazione >= :data_inizio"
-                params['data_inizio'] = datetime.now() - timedelta(days=7)
+                params['data_inizio'] = data_inizio.strftime('%Y-%m-%d')
             elif filtri['periodo'] == 'ultimo_mese':
+                data_inizio = data_corrente - timedelta(days=30)
                 query += " AND data_generazione >= :data_inizio"
-                params['data_inizio'] = datetime.now() - timedelta(days=30)
+                params['data_inizio'] = data_inizio.strftime('%Y-%m-%d')
     
-    # Ordiniamo per data di generazione, più recenti prima
     query += " ORDER BY data_generazione DESC"
     
     try:
-        # Esecuzione della query con gestione degli errori
-        return _conn.query(query, params=params)
+        df = _conn.query(query, params=params)
+        
+        # Convertiamo le colonne di data in datetime
+        if not df.empty:
+            for col in ['data_nascita', 'data_generazione']:
+                if col in df.columns:
+                    df[col] = pd.to_datetime(df[col])
+            
+            # Convertiamo la colonna ora_nascita in tipo time
+            if 'ora_nascita' in df.columns:
+                df['ora_nascita'] = pd.to_datetime(df['ora_nascita']).dt.time
+                
+        return df
+    
     except Exception as e:
         st.error(f"Errore nell'esecuzione della query: {str(e)}")
-        return pd.DataFrame()  # Restituiamo un DataFrame vuoto in caso di errore
+        return pd.DataFrame()
 
 def mostra_filtri():
     """
