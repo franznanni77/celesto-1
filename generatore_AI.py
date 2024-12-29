@@ -74,6 +74,7 @@ Sei un astrologo esperto. Genera un oroscopo personalizzato breve ma significati
 - Stile: professionale ma accessibile
 - Evita genericità
 - Lunghezza: 100-150 parole
+- cita sempre il nome della persona
 
 # DATI UTENTE
 {json.dumps(dati_utente, indent=4, ensure_ascii=False)}
@@ -97,7 +98,7 @@ Genera l'oroscopo mantenendo questa struttura."""
 
     def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> Dict[str, str]:
         """
-        Genera un oroscopo personalizzato utilizzando Claude 3.5 Haiku.
+        Genera un oroscopo personalizzato.
         Ottimizzato per risposte rapide e di alta qualità.
         
         Args:
