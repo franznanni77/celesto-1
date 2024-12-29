@@ -29,18 +29,21 @@ def get_min_date():
 
 def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
     """
-    Salva l'oroscopo generato nel database con gestione SQL corretta.
+    Salva l'oroscopo generato nel database con gestione dettagliata degli errori.
     """
     try:
-        # Importiamo text da sqlalchemy per gestire correttamente le query testuali
-        from sqlalchemy import text
+        # Debug: stampiamo i dati che stiamo per salvare
+        print("Tentativo di salvataggio con i seguenti dati:")
+        print(f"Nome: {dati_utente.get('nome')}")
+        print(f"Data nascita: {dati_utente.get('data_nascita')}")
+        print(f"Segno: {dati_utente.get('segno_zodiacale')}")
         
         # Inizializza la connessione
         conn = st.connection('mysql', type='sql')
         print("Connessione al database stabilita")
         
-        # Query di inserimento avvolta in text()
-        query = text("""
+        # Query di inserimento
+        query = """
         INSERT INTO oroscopi (
             nome_utente, 
             data_nascita, 
@@ -50,15 +53,15 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
             citta_nascita, 
             ora_nascita
         ) VALUES (
-            :nome,
-            :data_nascita,
-            :segno_zodiacale,
-            :ascendente,
-            :testo_oroscopo,
-            :citta_nascita,
-            :ora_nascita
+            %(nome)s,
+            %(data_nascita)s,
+            %(segno_zodiacale)s,
+            %(ascendente)s,
+            %(testo_oroscopo)s,
+            %(citta_nascita)s,
+            %(ora_nascita)s
         )
-        """)
+        """
         
         # Preparazione dei parametri con verifica dei valori
         params = {
@@ -71,7 +74,8 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
             "ora_nascita": dati_utente.get('ora_nascita')
         }
         
-        # Debug: stampiamo i parametri
+        # Debug: stampiamo la query e i parametri
+        print("Query da eseguire:", query)
         print("Parametri:", params)
         
         # Esecuzione della query con gestione esplicita della sessione
@@ -89,6 +93,9 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
         error_message = f"Errore dettagliato: {str(e)}\nTipo di errore: {type(e)}"
         print(error_message)
         st.error(f"Si è verificato un errore durante il salvataggio: {str(e)}")
+        
+        # Mostriamo informazioni aggiuntive per il debug
+        st.write("Dettagli per il debug (visibili solo in sviluppo):")
         st.code(error_message)
 
 # Configurazione della pagina Streamlit
