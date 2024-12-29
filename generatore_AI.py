@@ -2,7 +2,7 @@
 generatore_AI.py
 ---------------
 Questo modulo implementa un generatore di oroscopi personalizzati utilizzando Claude 3.5 Haiku,
-ottimizzato per risposte rapide mantenendo alta qualità e personalizzazione.
+con gestione degli errori migliorata e logging dettagliato.
 """
 
 from datetime import datetime
@@ -14,33 +14,31 @@ from anthropic import Anthropic
 class GeneratoreOroscopo:
     """
     Classe che gestisce la generazione di oroscopi personalizzati utilizzando Claude 3.5 Haiku.
-    Ottimizzata per risposte rapide e fluide, mantenendo un alto livello di personalizzazione.
     """
     
     def __init__(self):
         """
         Inizializza il generatore di oroscopi configurando il client Anthropic.
-        Utilizza Claude 3.5 Haiku per performance ottimali.
-        
-        Raises:
-            ValueError: Se la chiave API non è configurata correttamente nei secrets di Streamlit.
         """
         try:
-            # Inizializzazione del client Anthropic con la chiave dai secrets di Streamlit
+            # Verifica che la chiave API sia presente nei secrets
+            if "anthropic_api_key" not in st.secrets:
+                raise ValueError("La chiave API Anthropic non è configurata nei secrets di Streamlit")
+            
+            # Inizializzazione del client Anthropic
             self.client = Anthropic(api_key=st.secrets["anthropic_api_key"])
-            
-            # Utilizziamo Claude 3.5 Haiku per risposte rapide
             self.model = "claude-3-5-haiku-20241022"
-            
-            # Configurazione ottimizzata per Haiku
             self.max_tokens = 1024
-            self.temperature = 0.75  # Bilancia creatività e coerenza
+            self.temperature = 0.75
+            
+            print("Inizializzazione completata con successo")
             
         except Exception as e:
+            print(f"Errore durante l'inizializzazione: {str(e)}")
             raise ValueError(
                 "Errore nell'inizializzazione del client Anthropic. "
-                "Verifica che la chiave API sia configurata correttamente "
-                f"nei secrets di Streamlit. Errore: {str(e)}"
+                "Verifica che la chiave API sia configurata correttamente. "
+                f"Dettagli: {str(e)}"
             )
     
     def _determina_focus_giornaliero(self) -> str:
@@ -48,13 +46,13 @@ class GeneratoreOroscopo:
         Determina il focus tematico dell'oroscopo basato sul giorno della settimana.
         """
         focus_settimanale = {
-            0: "riflessione e pianificazione",    # Domenica
-            1: "carriera e ambizioni",            # Lunedì
-            2: "comunicazione e relazioni",       # Martedì
-            3: "creatività e progetti personali", # Mercoledì
-            4: "crescita e sviluppo",            # Giovedì
-            5: "socialità e collaborazioni",      # Venerdì
-            6: "benessere e svago"               # Sabato
+            0: "riflessione e pianificazione",
+            1: "carriera e ambizioni",
+            2: "comunicazione e relazioni",
+            3: "creatività e progetti personali",
+            4: "crescita e sviluppo",
+            5: "socialità e collaborazioni",
+            6: "benessere e svago"
         }
         
         giorno_corrente = datetime.now().weekday()
@@ -62,12 +60,17 @@ class GeneratoreOroscopo:
 
     def _costruisci_prompt(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Costruisce un prompt ottimizzato per Claude 3.5 Haiku, mantenendo la concisione
-        ma garantendo la personalizzazione dell'oroscopo.
+        Costruisce il prompt per l'API, verificando la presenza dei dati necessari.
         """
+        # Verifica che i dati utente contengano le informazioni necessarie
+        required_fields = ["nome", "segno_zodiacale", "ascendente", "gruppo_energia"]
+        missing_fields = [field for field in required_fields if field not in dati_utente]
+        
+        if missing_fields:
+            raise ValueError(f"Dati mancanti: {', '.join(missing_fields)}")
+            
         focus_giorno = self._determina_focus_giornaliero()
         
-        # Prompt ottimizzato per risposte più concise ma significative
         prompt = f"""# ISTRUZIONI SISTEMA
 Sei un astrologo esperto. Genera un oroscopo personalizzato breve ma significativo:
 - Tono: positivo e incoraggiante
@@ -98,42 +101,59 @@ Genera l'oroscopo mantenendo questa struttura."""
 
     def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Genera un oroscopo personalizzato che include il nome della persona.
-        Ottimizzato per risposte rapide e di alta qualità.
-        
-        Args:
-            dati_utente: Dizionario contenente i dati astrologici dell'utente
-            
-        Returns:
-            str: Il testo completo dell'oroscopo personalizzato
+        Genera un oroscopo personalizzato con gestione degli errori migliorata.
         """
         try:
-            # Preparazione e invio della richiesta all'API
+            # Verifica dei dati in input
+            if not isinstance(dati_utente, dict):
+                raise ValueError(f"I dati utente devono essere un dizionario. Ricevuto: {type(dati_utente)}")
+
+            # Log dei dati ricevuti (escludi informazioni sensibili)
+            print(f"Generazione oroscopo per segno: {dati_utente.get('segno_zodiacale')}")
+            
+            # Preparazione del prompt
             prompt = self._costruisci_prompt(dati_utente)
             
-            # Generazione dell'oroscopo con parametri ottimizzati
-            message = self.client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-            )
-            
-            # Restituisce direttamente il testo completo della risposta
-            return message.content[0].text
+            # Chiamata all'API con gestione esplicita degli errori
+            try:
+                message = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                
+                # Verifica che la risposta contenga il contenuto atteso
+                if not message.content:
+                    raise ValueError("La risposta dell'API non contiene contenuto")
+                
+                # Estrai il testo della risposta
+                oroscopo = message.content[0].text
+                
+                # Verifica che l'oroscopo sia stato generato correttamente
+                if not oroscopo or len(oroscopo) < 50:  # verifica minima lunghezza
+                    raise ValueError("L'oroscopo generato è troppo corto o vuoto")
+                
+                return oroscopo
+                
+            except Exception as api_error:
+                print(f"Errore durante la chiamata API: {str(api_error)}")
+                raise
             
         except Exception as e:
             # Log dettagliato dell'errore
-            print(f"Errore nella generazione dell'oroscopo: {str(e)}")
+            print(f"Errore dettagliato nella generazione dell'oroscopo: {str(e)}")
+            st.error(f"Errore specifico: {str(e)}")
             
-            # Notifica all'utente
-            st.error("Si è verificato un errore nella generazione dell'oroscopo.")
-            
-            # Risposta di fallback
-            return ("Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
-                   "Per favore, riprova più tardi.")
+            # Risposta di fallback più informativa
+            return ("Mi dispiace, si è verificato un errore durante la generazione dell'oroscopo. "
+                   "L'errore potrebbe essere dovuto a: \n"
+                   "1. Problemi di connessione con il servizio\n"
+                   "2. Dati mancanti o non validi\n"
+                   "3. Configurazione non corretta\n"
+                   "Per favore, verifica i dati inseriti e riprova.")
