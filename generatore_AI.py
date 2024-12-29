@@ -1,13 +1,8 @@
 """
 generatore_AI.py
 ---------------
-Questo modulo implementa un generatore di oroscopi personalizzati utilizzando l'API di Anthropic Claude.
-Il modulo gestisce la generazione di oroscopi basati su dati astrologici specifici dell'utente,
-utilizzando un approccio strutturato e personalizzato per ogni previsione.
-
-Autore: [Il tuo nome]
-Data: [Data corrente]
-Versione: 1.0
+Questo modulo implementa un generatore di oroscopi personalizzati utilizzando Claude 3 Haiku,
+ottimizzato per risposte rapide mantenendo alta qualità e personalizzazione.
 """
 
 from datetime import datetime
@@ -18,15 +13,14 @@ from anthropic import Anthropic
 
 class GeneratoreOroscopo:
     """
-    Classe che gestisce la generazione di oroscopi personalizzati utilizzando l'API di Anthropic.
-    La classe si occupa di costruire prompt appropriati, interagire con l'API e formattare
-    le risposte in un formato utilizzabile dall'applicazione.
+    Classe che gestisce la generazione di oroscopi personalizzati utilizzando Claude 3 Haiku.
+    Ottimizzata per risposte rapide e fluide, mantenendo un alto livello di personalizzazione.
     """
     
     def __init__(self):
         """
         Inizializza il generatore di oroscopi configurando il client Anthropic.
-        La chiave API viene recuperata in modo sicuro dai secrets di Streamlit.
+        Utilizza la versione più recente di Claude 3 Haiku per performance ottimali.
         
         Raises:
             ValueError: Se la chiave API non è configurata correttamente nei secrets di Streamlit.
@@ -35,8 +29,12 @@ class GeneratoreOroscopo:
             # Inizializzazione del client Anthropic con la chiave dai secrets di Streamlit
             self.client = Anthropic(api_key=st.secrets["anthropic_api_key"])
             
-            # Configurazione del modello - utilizziamo la versione più recente e capace
-            self.model = "claude-3-opus-20240229"
+            # Utilizziamo la versione più recente di Claude 3 Haiku
+            self.model = "claude-3-haiku-20241022"
+            
+            # Configurazione per generazione ottimale
+            self.temperature = 0.75  # Bilancia creatività e coerenza
+            
         except Exception as e:
             raise ValueError(
                 "Errore nell'inizializzazione del client Anthropic. "
@@ -48,9 +46,6 @@ class GeneratoreOroscopo:
         """
         Determina il focus tematico dell'oroscopo basato sul giorno della settimana.
         Questo assicura che le previsioni siano rilevanti per il contesto temporale.
-        
-        Returns:
-            str: Il tema specifico per il giorno corrente
         """
         focus_settimanale = {
             0: "riflessione e pianificazione",    # Domenica
@@ -67,66 +62,57 @@ class GeneratoreOroscopo:
 
     def _costruisci_prompt(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Costruisce un prompt dettagliato per l'API di Anthropic, incorporando
-        i dati astrologici dell'utente e le linee guida per la generazione.
-        
-        Args:
-            dati_utente: Dizionario contenente i dati astrologici dell'utente
-            
-        Returns:
-            str: Il prompt completo formattato per l'API
+        Costruisce un prompt ottimizzato per Claude 3 Haiku, garantendo personalizzazione
+        e rilevanza dell'oroscopo generato.
         """
         focus_giorno = self._determina_focus_giornaliero()
         
-        # Costruzione del prompt con tutte le istruzioni necessarie
         prompt = f"""# ISTRUZIONI SISTEMA
-Sei un rinomato astrologo con 30 anni di esperienza. Devi generare un oroscopo personalizzato seguendo queste linee guida per il tono e lo stile:
-- Usa un tono positivo e incoraggiante, ma realistico
-- Mantieni un linguaggio accessibile ma professionale
-- Evita espressioni troppo vaghe o generiche
-- Includi dettagli specifici legati alle configurazioni astrali
-- Lunghezza massima: 150 parole
+Sei un astrologo esperto. Genera un oroscopo personalizzato breve ma significativo:
+- Tono: positivo e incoraggiante
+- Stile: professionale ma accessibile
+- Evita genericità
+- Lunghezza: 100-150 parole
 
-# DATI CLUSTER
+# DATI UTENTE
 {json.dumps(dati_utente, indent=4, ensure_ascii=False)}
 
 # STRUTTURA OUTPUT
-Genera un oroscopo giornaliero che includa:
-1. Panoramica generale (2-3 frasi)
-2. Focus specifico su: {focus_giorno} (1-2 frasi)
-3. Consiglio personalizzato basato sui dati utente (1-2 frasi)
+Genera in questo ordine:
+1. Panoramica generale (1-2 frasi)
+2. Focus su: {focus_giorno} (1-2 frasi)
+3. Consiglio personalizzato (1 frase)
 4. Numeri fortunati del giorno
 
-# VINCOLI IMPORTANTI
-- Non menzionare mai esplicitamente che l'oroscopo è generato da AI
-- Evita previsioni troppo specifiche su salute o decisioni finanziarie
-- Mantieni coerenza con le letture precedenti
-- Non contraddire i principi astrologici fondamentali
-- Assicurati che i consigli siano sempre costruttivi e realizzabili
+# VINCOLI
+- No riferimenti ad AI
+- Evita previsioni su salute/finanze
+- Consigli realizzabili
+- Coerenza astrologica
 
-Genera l'oroscopo seguendo queste linee guida."""
+Genera l'oroscopo mantenendo questa struttura."""
 
         return prompt
 
-    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> Dict[str, str]:
+    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Genera un oroscopo personalizzato utilizzando l'API di Anthropic.
+        Genera un oroscopo personalizzato utilizzando Claude 3 Haiku.
+        Il metodo è ottimizzato per produrre risposte di alta qualità in modo efficiente.
         
         Args:
             dati_utente: Dizionario contenente i dati astrologici dell'utente
             
         Returns:
-            Dict[str, str]: Dizionario contenente il testo dell'oroscopo e i numeri fortunati
+            str: Il testo dell'oroscopo generato
         """
         try:
             # Preparazione e invio della richiesta all'API
             prompt = self._costruisci_prompt(dati_utente)
             
-            # Generazione dell'oroscopo tramite API
+            # Generazione dell'oroscopo con parametri ottimizzati
             message = self.client.messages.create(
                 model=self.model,
-                max_tokens=1024,
-                temperature=0.7,  # Bilanciamento tra creatività e coerenza
+                temperature=self.temperature,
                 messages=[
                     {
                         "role": "user",
@@ -135,62 +121,18 @@ Genera l'oroscopo seguendo queste linee guida."""
                 ]
             )
             
-            # Estrazione e formattazione della risposta
-            # La risposta è strutturata come una lista di contenuti
-            contenuto = message.content[0].text
-            
-            # Separazione del testo dell'oroscopo dai numeri fortunati
-            parti = contenuto.split("Numeri fortunati:")
-            
-            # Creazione del dizionario di risposta
-            oroscopo = {
-                "testo": parti[0].strip(),
-                "numeri_fortunati": parti[1].strip() if len(parti) > 1 else "Non disponibili"
-            }
+            # Estrazione del testo dalla risposta
+            oroscopo = message.content[0].text
             
             return oroscopo
             
         except Exception as e:
-            # Log dell'errore per debugging
-            print(f"Errore dettagliato nella generazione dell'oroscopo: {str(e)}")
+            # Log dettagliato dell'errore per debugging
+            print(f"Errore nella generazione dell'oroscopo: {str(e)}")
             
             # Notifica all'utente attraverso l'interfaccia Streamlit
-            st.error(f"Errore nella generazione dell'oroscopo: {str(e)}")
+            st.error("Si è verificato un errore nella generazione dell'oroscopo.")
             
-            # Restituzione di una risposta di fallback
-            return {
-                "testo": "Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
-                        "Per favore, riprova più tardi.",
-                "numeri_fortunati": "Non disponibili"
-            }
-
-# Esempio di utilizzo della classe
-"""
-# Nel tuo streamlit_app.py:
-
-try:
-    # Inizializzazione del generatore
-    generatore = GeneratoreOroscopo()
-    
-    # Generazione dell'oroscopo con dati di esempio
-    dati_utente = {
-        "segno_zodiacale": "Ariete",
-        "ascendente": "Leone",
-        "gruppo_energia": "Fuoco dominante",
-        "fase_lunare": "Luna Crescente",
-        "età": 34,
-        "pianeti_rilevanti": ["Marte in Capricorno", "Venere in Pesci"]
-    }
-    
-    # Generazione e visualizzazione dell'oroscopo
-    with st.spinner("Generazione oroscopo in corso..."):
-        oroscopo = generatore.genera_oroscopo(dati_utente)
-    
-    st.write("### Il tuo oroscopo personalizzato")
-    st.write(oroscopo["testo"])
-    st.write(f"**Numeri fortunati**: {oroscopo['numeri_fortunati']}")
-    
-except Exception as e:
-    st.error("Errore nella generazione dell'oroscopo. "
-             "Verifica la configurazione e riprova.")
-"""
+            # Restituzione di un messaggio di errore appropriato
+            return ("Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
+                   "Per favore, riprova più tardi.")
