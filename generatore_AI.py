@@ -1,7 +1,7 @@
 """
 generatore_AI.py
 ---------------
-Questo modulo implementa un generatore di oroscopi personalizzati utilizzando Claude 3 Haiku,
+Questo modulo implementa un generatore di oroscopi personalizzati utilizzando Claude 3.5 Haiku,
 ottimizzato per risposte rapide mantenendo alta qualità e personalizzazione.
 """
 
@@ -13,14 +13,14 @@ from anthropic import Anthropic
 
 class GeneratoreOroscopo:
     """
-    Classe che gestisce la generazione di oroscopi personalizzati utilizzando Claude 3 Haiku.
+    Classe che gestisce la generazione di oroscopi personalizzati utilizzando Claude 3.5 Haiku.
     Ottimizzata per risposte rapide e fluide, mantenendo un alto livello di personalizzazione.
     """
     
     def __init__(self):
         """
         Inizializza il generatore di oroscopi configurando il client Anthropic.
-        Utilizza la versione più recente di Claude 3 Haiku per performance ottimali.
+        Utilizza Claude 3.5 Haiku per performance ottimali.
         
         Raises:
             ValueError: Se la chiave API non è configurata correttamente nei secrets di Streamlit.
@@ -29,11 +29,12 @@ class GeneratoreOroscopo:
             # Inizializzazione del client Anthropic con la chiave dai secrets di Streamlit
             self.client = Anthropic(api_key=st.secrets["anthropic_api_key"])
             
-            # Utilizziamo la versione più recente di Claude 3 Haiku
-            self.model = "claude-3-haiku-20241022"
+            # Utilizziamo Claude 3.5 Haiku per risposte rapide
+            self.model = "claude-3-haiku-20240307"
             
-            # Configurazione per generazione ottimale
-            self.temperature = 0.75  # Bilancia creatività e coerenza
+            # Configurazione ottimizzata per Haiku
+            self.max_tokens = 512  # Ridotto per risposte più concise
+            self.temperature = 0.75  # Leggermente aumentata per maggiore creatività
             
         except Exception as e:
             raise ValueError(
@@ -45,7 +46,6 @@ class GeneratoreOroscopo:
     def _determina_focus_giornaliero(self) -> str:
         """
         Determina il focus tematico dell'oroscopo basato sul giorno della settimana.
-        Questo assicura che le previsioni siano rilevanti per il contesto temporale.
         """
         focus_settimanale = {
             0: "riflessione e pianificazione",    # Domenica
@@ -62,11 +62,12 @@ class GeneratoreOroscopo:
 
     def _costruisci_prompt(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Costruisce un prompt ottimizzato per Claude 3 Haiku, garantendo personalizzazione
-        e rilevanza dell'oroscopo generato.
+        Costruisce un prompt ottimizzato per Claude 3.5 Haiku, mantenendo la concisione
+        ma garantendo la personalizzazione dell'oroscopo.
         """
         focus_giorno = self._determina_focus_giornaliero()
         
+        # Prompt ottimizzato per risposte più concise ma significative
         prompt = f"""# ISTRUZIONI SISTEMA
 Sei un astrologo esperto. Genera un oroscopo personalizzato breve ma significativo:
 - Tono: positivo e incoraggiante
@@ -94,24 +95,25 @@ Genera l'oroscopo mantenendo questa struttura."""
 
         return prompt
 
-    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> str:
+    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> Dict[str, str]:
         """
-        Genera un oroscopo personalizzato utilizzando Claude 3 Haiku.
-        Il metodo è ottimizzato per produrre risposte di alta qualità in modo efficiente.
+        Genera un oroscopo personalizzato utilizzando Claude 3.5 Haiku.
+        Ottimizzato per risposte rapide e di alta qualità.
         
         Args:
             dati_utente: Dizionario contenente i dati astrologici dell'utente
             
         Returns:
-            str: Il testo dell'oroscopo generato
+            Dict[str, str]: Dizionario contenente il testo dell'oroscopo e i numeri fortunati
         """
         try:
             # Preparazione e invio della richiesta all'API
             prompt = self._costruisci_prompt(dati_utente)
             
-            # Generazione dell'oroscopo con parametri ottimizzati
+            # Generazione dell'oroscopo con parametri ottimizzati per Haiku
             message = self.client.messages.create(
                 model=self.model,
+                max_tokens=self.max_tokens,
                 temperature=self.temperature,
                 messages=[
                     {
@@ -121,18 +123,30 @@ Genera l'oroscopo mantenendo questa struttura."""
                 ]
             )
             
-            # Estrazione del testo dalla risposta
-            oroscopo = message.content[0].text
+            # Estrazione e formattazione della risposta
+            contenuto = message.content[0].text
+            
+            # Separazione del testo dell'oroscopo dai numeri fortunati
+            parti = contenuto.split("Numeri fortunati:")
+            
+            # Creazione del dizionario di risposta
+            oroscopo = {
+                "testo": parti[0].strip(),
+                "numeri_fortunati": parti[1].strip() if len(parti) > 1 else "Non disponibili"
+            }
             
             return oroscopo
             
         except Exception as e:
-            # Log dettagliato dell'errore per debugging
+            # Log dettagliato dell'errore
             print(f"Errore nella generazione dell'oroscopo: {str(e)}")
             
-            # Notifica all'utente attraverso l'interfaccia Streamlit
+            # Notifica all'utente
             st.error("Si è verificato un errore nella generazione dell'oroscopo.")
             
-            # Restituzione di un messaggio di errore appropriato
-            return ("Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
-                   "Per favore, riprova più tardi.")
+            # Risposta di fallback
+            return {
+                "testo": "Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
+                        "Per favore, riprova più tardi.",
+                "numeri_fortunati": "Non disponibili"
+            }
