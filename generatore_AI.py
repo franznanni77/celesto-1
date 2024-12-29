@@ -30,7 +30,7 @@ class GeneratoreOroscopo:
             self.client = Anthropic(api_key=st.secrets["anthropic_api_key"])
             
             # Utilizziamo Claude 3.5 Haiku per risposte rapide
-            self.model = "claude-3-haiku-20241022"
+            self.model = "claude-3-haiku-20240307"
             
             # Configurazione ottimizzata per Haiku
             self.max_tokens = 1024  # Ridotto per risposte più concise
