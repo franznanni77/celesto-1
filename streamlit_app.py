@@ -30,21 +30,13 @@ def get_min_date():
 def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
     """
     Salva l'oroscopo generato nel database usando PyMySQL come driver.
-    Include gestione specifica per la serializzazione delle date e il testo SQL.
-    
-    Args:
-        dati_utente: Dizionario contenente i dati dell'utente
-        testo_oroscopo: Il testo dell'oroscopo generato
+    Gestisce le date già convertite in stringhe.
     """
     try:
         # Inizializza la connessione
         conn = st.connection('mysql', type='sql')
         
-        # Converti la data in stringa nel formato corretto per MySQL
-        data_nascita_str = dati_utente.get("data_nascita").strftime('%Y-%m-%d')
-        ora_nascita_str = dati_utente.get("ora_nascita").strftime('%H:%M:%S')
-        
-        # Prepara la query di inserimento utilizzando il text() di SQLAlchemy
+        # Usa direttamente le stringhe di data e ora già formattate
         query = """
         INSERT INTO oroscopi (
             nome_utente, 
@@ -65,27 +57,25 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
         )
         """
         
-        # Prepara i parametri con i dati già convertiti in formato stringa
+        # Usa i dati già convertiti in stringhe
         params = {
             "nome": dati_utente["nome"],
-            "data_nascita": data_nascita_str,
+            "data_nascita": dati_utente["data_nascita"],  # Già in formato stringa
             "segno_zodiacale": dati_utente.get("segno_zodiacale"),
             "ascendente": dati_utente.get("ascendente"),
             "testo_oroscopo": testo_oroscopo,
             "citta_nascita": dati_utente.get("citta_nascita"),
-            "ora_nascita": ora_nascita_str
+            "ora_nascita": dati_utente["ora_nascita"]  # Già in formato stringa
         }
         
-        # Esegui la query utilizzando la sintassi corretta per PyMySQL
+        # Esegui la query
         with conn.session as s:
             s.execute(query, params)
             s.commit()
         
-        # Mostra conferma del salvataggio
         st.success("Oroscopo salvato con successo nel database!")
         
     except Exception as e:
-        # Log dettagliato dell'errore per debug
         print(f"Errore dettagliato durante il salvataggio: {str(e)}")
         st.error("Si è verificato un errore durante il salvataggio dell'oroscopo.")
 
@@ -221,9 +211,9 @@ if submit:
                 dati_completi = {
                     **dati_astrologici,  # Tutti i dati astrologici
                     "nome": nome,  # Il nome dell'utente
-                    "data_nascita": data_nascita,  # Aggiunto per il database
-                    "citta_nascita": citta_nascita,  # Aggiunto per il database
-                    "ora_nascita": ora_nascita  # Aggiunto per il database
+                     "data_nascita": data_nascita.strftime('%Y-%m-%d'),  # Convertiamo in stringa
+                     "citta_nascita": citta_nascita,  # Città rimane stringa
+                     "ora_nascita": ora_nascita.strftime('%H:%M:%S')  # Convertiamo in stringa
                 }
                 
                 # Visualizziamo i risultati principali
