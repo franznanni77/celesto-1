@@ -33,8 +33,8 @@ class GeneratoreOroscopo:
             self.model = "claude-3-5-haiku-20241022"
             
             # Configurazione ottimizzata per Haiku
-            self.max_tokens = 1024  # Ridotto per risposte più concise
-            self.temperature = 0.75  # Leggermente aumentata per maggiore creatività
+            self.max_tokens = 1024
+            self.temperature = 0.75  # Bilancia creatività e coerenza
             
         except Exception as e:
             raise ValueError(
@@ -74,14 +74,14 @@ Sei un astrologo esperto. Genera un oroscopo personalizzato breve ma significati
 - Stile: professionale ma accessibile
 - Evita genericità
 - Lunghezza: 100-150 parole
-- cita sempre il nome della persona
+- Usa il nome della persona almeno una volta nella panoramica generale
 
 # DATI UTENTE
 {json.dumps(dati_utente, indent=4, ensure_ascii=False)}
 
 # STRUTTURA OUTPUT
 Genera in questo ordine:
-1. Panoramica generale (1-2 frasi)
+1. Panoramica generale (1-2 frasi, includendo il nome della persona)
 2. Focus su: {focus_giorno} (1-2 frasi)
 3. Consiglio personalizzato (1 frase)
 4. Numeri fortunati del giorno
@@ -96,22 +96,22 @@ Genera l'oroscopo mantenendo questa struttura."""
 
         return prompt
 
-    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> Dict[str, str]:
+    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Genera un oroscopo personalizzato.
+        Genera un oroscopo personalizzato che include il nome della persona.
         Ottimizzato per risposte rapide e di alta qualità.
         
         Args:
             dati_utente: Dizionario contenente i dati astrologici dell'utente
             
         Returns:
-            Dict[str, str]: Dizionario contenente il testo dell'oroscopo e i numeri fortunati
+            str: Il testo completo dell'oroscopo personalizzato
         """
         try:
             # Preparazione e invio della richiesta all'API
             prompt = self._costruisci_prompt(dati_utente)
             
-            # Generazione dell'oroscopo con parametri ottimizzati per Haiku
+            # Generazione dell'oroscopo con parametri ottimizzati
             message = self.client.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
@@ -124,19 +124,8 @@ Genera l'oroscopo mantenendo questa struttura."""
                 ]
             )
             
-            # Estrazione e formattazione della risposta
-            contenuto = message.content[0].text
-            
-            # Separazione del testo dell'oroscopo dai numeri fortunati
-            parti = contenuto.split("Numeri fortunati:")
-            
-            # Creazione del dizionario di risposta
-            oroscopo = {
-                "testo": parti[0].strip(),
-                "numeri_fortunati": parti[1].strip() if len(parti) > 1 else "Non disponibili"
-            }
-            
-            return oroscopo
+            # Restituisce direttamente il testo completo della risposta
+            return message.content[0].text
             
         except Exception as e:
             # Log dettagliato dell'errore
@@ -146,8 +135,5 @@ Genera l'oroscopo mantenendo questa struttura."""
             st.error("Si è verificato un errore nella generazione dell'oroscopo.")
             
             # Risposta di fallback
-            return {
-                "testo": "Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
-                        "Per favore, riprova più tardi.",
-                "numeri_fortunati": "Non disponibili"
-            }
+            return ("Mi dispiace, si è verificato un errore nella generazione dell'oroscopo. "
+                   "Per favore, riprova più tardi.")
