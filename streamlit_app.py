@@ -29,21 +29,18 @@ def get_min_date():
 
 def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
     """
-    Salva l'oroscopo generato nel database con gestione dettagliata degli errori.
+    Salva l'oroscopo generato nel database con gestione SQL corretta.
     """
     try:
-        # Debug: stampiamo i dati che stiamo per salvare
-        print("Tentativo di salvataggio con i seguenti dati:")
-        print(f"Nome: {dati_utente.get('nome')}")
-        print(f"Data nascita: {dati_utente.get('data_nascita')}")
-        print(f"Segno: {dati_utente.get('segno_zodiacale')}")
+        # Importiamo text da sqlalchemy per gestire correttamente le query testuali
+        from sqlalchemy import text
         
         # Inizializza la connessione
         conn = st.connection('mysql', type='sql')
         print("Connessione al database stabilita")
         
-        # Query di inserimento
-        query = """
+        # Query di inserimento avvolta in text()
+        query = text("""
         INSERT INTO oroscopi (
             nome_utente, 
             data_nascita, 
@@ -53,15 +50,15 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
             citta_nascita, 
             ora_nascita
         ) VALUES (
-            %(nome)s,
-            %(data_nascita)s,
-            %(segno_zodiacale)s,
-            %(ascendente)s,
-            %(testo_oroscopo)s,
-            %(citta_nascita)s,
-            %(ora_nascita)s
+            :nome,
+            :data_nascita,
+            :segno_zodiacale,
+            :ascendente,
+            :testo_oroscopo,
+            :citta_nascita,
+            :ora_nascita
         )
-        """
+        """)
         
         # Preparazione dei parametri con verifica dei valori
         params = {
@@ -74,8 +71,7 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
             "ora_nascita": dati_utente.get('ora_nascita')
         }
         
-        # Debug: stampiamo la query e i parametri
-        print("Query da eseguire:", query)
+        # Debug: stampiamo i parametri
         print("Parametri:", params)
         
         # Esecuzione della query con gestione esplicita della sessione
@@ -93,11 +89,7 @@ def salva_oroscopo_db(dati_utente: dict, testo_oroscopo: str):
         error_message = f"Errore dettagliato: {str(e)}\nTipo di errore: {type(e)}"
         print(error_message)
         st.error(f"Si è verificato un errore durante il salvataggio: {str(e)}")
-        
-        # Mostriamo informazioni aggiuntive per il debug
-        st.write("Dettagli per il debug (visibili solo in sviluppo):")
         st.code(error_message)
-
 # Configurazione della pagina Streamlit
 st.set_page_config(
     page_title="Calcolo Astrologico Personalizzato",
@@ -110,20 +102,62 @@ st.set_page_config(
 def load_custom_css():
     st.markdown("""
         <style>
+        /* Stili esistenti migliorati */
         .stButton>button {
             width: 100%;
             background-color: #4F8BF9;
             color: white;
         }
+        
         .stMetric {
-            background-color: #f0f2f6;
+            background-color: rgba(240, 242, 246, 0.1);
             padding: 10px;
             border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: inherit;
         }
+        
         .date-info {
             font-size: 0.9em;
-            color: #666;
+            color: inherit;
             margin-bottom: 1em;
+            opacity: 0.8;
+        }
+        
+        /* Nuovi stili per l'oroscopo */
+        .oroscopo-container {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: inherit;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Stili specifici per il testo dell'oroscopo */
+        .oroscopo-text {
+            line-height: 1.6;
+            font-size: 1.1em;
+            color: inherit;
+        }
+        
+        /* Stili per i numeri fortunati */
+        .numeri-fortunati {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+            color: inherit;
+        }
+        
+        /* Miglioriamo la leggibilità delle metriche */
+        .metric-container {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: inherit;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -267,11 +301,13 @@ if submit:
                         salva_oroscopo_db(dati_completi, oroscopo)
                     
                     # Visualizzazione dell'oroscopo in un box dedicato
-                    st.markdown(f"""
-                    <div style='background-color: #f0f2f6; padding: 20px; border-radius: 10px;'>
-                        {oroscopo}
-                    </div>
-                    """, unsafe_allow_html=True)
+                        st.markdown(f"""
+                            <div class="oroscopo-container">
+                                 <div class="oroscopo-text">
+                                    {oroscopo}
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
                     
                 except Exception as e:
                     st.error(f"""
