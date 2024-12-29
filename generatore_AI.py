@@ -35,10 +35,6 @@ class GeneratoreOroscopo:
     def _determina_focus_giornaliero(self) -> str:
         """
         Determina il focus tematico basato sul giorno della settimana.
-        Ogni giorno ha un suo tema specifico per mantenere varietà e rilevanza.
-        
-        Returns:
-            str: Il tema del giorno corrente
         """
         focus_settimanale = {
             0: "riflessione e pianificazione",    # Domenica
@@ -54,14 +50,7 @@ class GeneratoreOroscopo:
 
     def _costruisci_prompt(self, dati_utente: Dict[str, Any]) -> str:
         """
-        Costruisce il prompt per l'API di Anthropic utilizzando i dati dell'utente
-        e le linee guida predefinite.
-        
-        Args:
-            dati_utente: Dizionario contenente i dati astrologici dell'utente
-            
-        Returns:
-            str: Il prompt completo formattato
+        Costruisce il prompt per l'API di Anthropic utilizzando i dati dell'utente.
         """
         focus_giorno = self._determina_focus_giornaliero()
         
@@ -94,9 +83,10 @@ Genera l'oroscopo seguendo queste linee guida."""
 
         return prompt
 
-    async def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> Dict[str, str]:
+    def genera_oroscopo(self, dati_utente: Dict[str, Any]) -> Dict[str, str]:
         """
         Genera un oroscopo personalizzato utilizzando l'API di Anthropic e formatta il risultato.
+        Questa è una versione sincrona della funzione, che non richiede await.
         
         Args:
             dati_utente: Dizionario contenente i dati astrologici dell'utente
@@ -108,10 +98,11 @@ Genera l'oroscopo seguendo queste linee guida."""
             # Costruiamo il prompt e facciamo la chiamata all'API
             prompt = self._costruisci_prompt(dati_utente)
             
-            message = await self.client.messages.create(
+            # Chiamata sincrona all'API
+            message = self.client.messages.create(
                 model=self.model,
                 max_tokens=1024,
-                temperature=0.7,  # Bilanciamento tra creatività e coerenza
+                temperature=0.7,
                 messages=[
                     {
                         "role": "user",
@@ -139,19 +130,3 @@ Genera l'oroscopo seguendo queste linee guida."""
                         "Per favore, riprova più tardi.",
                 "numeri_fortunati": "Non disponibili"
             }
-
-# Esempio di come utilizzare la classe nel contesto di Streamlit
-"""
-# Nel tuo streamlit_app.py:
-try:
-    generatore = GeneratoreOroscopo()
-    with st.spinner("Generazione oroscopo in corso..."):
-        oroscopo = asyncio.run(generatore.genera_oroscopo(dati_astrologici))
-    
-    st.write("### Il tuo oroscopo personalizzato")
-    st.write(oroscopo["testo"])
-    st.write(f"**Numeri fortunati**: {oroscopo['numeri_fortunati']}")
-except Exception as e:
-    st.error("Errore nella configurazione del generatore di oroscopi. "
-             "Verifica che la chiave API sia configurata correttamente.")
-"""

@@ -142,7 +142,8 @@ if submit:
                 try:
                     generatore = GeneratoreOroscopo()
                     with st.spinner("Generazione del tuo oroscopo personalizzato..."):
-                        oroscopo = asyncio.run(generatore.genera_oroscopo(dati_astrologici))
+                        oroscopo = generatore.genera_oroscopo(dati_astrologici)
+
                     
                     # Visualizzazione dell'oroscopo in un box dedicato
                     st.markdown(f"""
