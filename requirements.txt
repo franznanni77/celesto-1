@@ -21,4 +21,5 @@ pylint>=3.0.3
 # Altre utilità
 typing-extensions>=4.9.0
 python-dotenv>=1.0.0
+SQLAlchemy
 
