@@ -17,9 +17,11 @@ st.markdown("""
 </a>
 """, unsafe_allow_html=True)
 
+@st.cache_data(ttl=300)  # Cache per 5 minuti
 def carica_oroscopi(conn, filtri=None):
     """
     Recupera gli oroscopi dal database applicando i filtri specificati.
+    La funzione utilizza il caching di Streamlit per migliorare le performance.
     
     Args:
         conn: Connessione al database Streamlit
@@ -28,7 +30,7 @@ def carica_oroscopi(conn, filtri=None):
     Returns:
         DataFrame pandas contenente i risultati della query
     """
-    # Costruiamo la query di base
+    # Costruiamo la query come stringa normale invece che come TextClause
     query = """
     SELECT 
         id,
@@ -68,8 +70,12 @@ def carica_oroscopi(conn, filtri=None):
     # Aggiungiamo l'ordinamento
     query += " ORDER BY data_generazione DESC"
     
-    # Eseguiamo la query
-    return conn.query(text(query), params=params)
+    try:
+        # Eseguiamo la query direttamente senza convertirla in TextClause
+        return conn.query(query, params=params)
+    except Exception as e:
+        st.error(f"Errore nell'esecuzione della query: {str(e)}")
+        return pd.DataFrame()  # Restituiamo un DataFrame vuoto in caso di errore
 
 def mostra_filtri():
     """
