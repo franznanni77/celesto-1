@@ -206,13 +206,14 @@ if submit:
                 dati_astrologici = genera_dati_astrologici(data_nascita, ora_nascita)
                 
                 # Aggiungiamo il nome ai dati astrologici per il generatore AI
+                # Aggiungiamo il nome ai dati astrologici per il generatore AI
                 dati_completi = {
                     **dati_astrologici,  # Tutti i dati astrologici
                     "nome": nome,  # Il nome dell'utente
-                    "data_nascita": data_nascita,  # Aggiunto per il database
-                    "citta_nascita": citta_nascita,  # Aggiunto per il database
-                    "ora_nascita": ora_nascita  # Aggiunto per il database
-                }
+                    "data_nascita": data_nascita.strftime('%Y-%m-%d'),  # Convertiamo la data in stringa
+                    "citta_nascita": citta_nascita,
+                    "ora_nascita": ora_nascita.strftime('%H:%M')  # Convertiamo l'ora in stringa
+                    }
                 
                 # Visualizziamo i risultati principali
                 st.success(f"Profilo astrologico di {nome}")
