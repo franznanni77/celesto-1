@@ -33,7 +33,108 @@ def valida_numero_cellulare(numero):
         
     return True, "Numero valido"
 
-[... resto delle funzioni precedenti rimane invariato ...]
+def calcola_segno_zodiacale(data):
+    """
+    Calcola il segno zodiacale in base alla data di nascita
+    """
+    giorno = data.day
+    mese = data.month
+    
+    if (mese == 3 and giorno >= 21) or (mese == 4 and giorno <= 19):
+        return "Ariete"
+    elif (mese == 4 and giorno >= 20) or (mese == 5 and giorno <= 20):
+        return "Toro"
+    elif (mese == 5 and giorno >= 21) or (mese == 6 and giorno <= 20):
+        return "Gemelli"
+    elif (mese == 6 and giorno >= 21) or (mese == 7 and giorno <= 22):
+        return "Cancro"
+    elif (mese == 7 and giorno >= 23) or (mese == 8 and giorno <= 22):
+        return "Leone"
+    elif (mese == 8 and giorno >= 23) or (mese == 9 and giorno <= 22):
+        return "Vergine"
+    elif (mese == 9 and giorno >= 23) or (mese == 10 and giorno <= 22):
+        return "Bilancia"
+    elif (mese == 10 and giorno >= 23) or (mese == 11 and giorno <= 21):
+        return "Scorpione"
+    elif (mese == 11 and giorno >= 22) or (mese == 12 and giorno <= 21):
+        return "Sagittario"
+    elif (mese == 12 and giorno >= 22) or (mese == 1 and giorno <= 19):
+        return "Capricorno"
+    elif (mese == 1 and giorno >= 20) or (mese == 2 and giorno <= 18):
+        return "Acquario"
+    else:
+        return "Pesci"
+
+def calcola_correzione_precessionale(anno):
+    """
+    Calcola la correzione dovuta alla precessione degli equinozi.
+    La precessione causa uno spostamento di circa 1 grado ogni 72 anni.
+    Prendiamo il 2000 come anno di riferimento per i calcoli astrologici moderni.
+    """
+    ANNO_RIFERIMENTO = 2000
+    GRADI_PER_ANNO = 1 / 72  # 1 grado ogni 72 anni
+    
+    # Calcoliamo la differenza in anni dal 2000
+    differenza_anni = anno - ANNO_RIFERIMENTO
+    
+    # Calcoliamo lo spostamento in gradi
+    spostamento_gradi = differenza_anni * GRADI_PER_ANNO
+    
+    # Convertiamo i gradi in ore (360 gradi = 24 ore)
+    spostamento_ore = (spostamento_gradi * 24) / 360
+    
+    return spostamento_ore
+
+def calcola_ascendente(data, ora):
+    """
+    Calcola l'ascendente basato su data e ora di nascita,
+    includendo correzioni per il mese e la precessione degli equinozi.
+    """
+    ora_decimale = ora.hour + ora.minute / 60.0
+    mese = data.month
+    anno = data.year
+    
+    # Aggiustamento stagionale (ogni mese l'ascendente si sposta di circa 2 ore)
+    aggiustamento_mensile = (mese - 1) * 2
+    
+    # Aggiustamento precessionale
+    correzione_precessionale = calcola_correzione_precessionale(anno)
+    
+    # Applichiamo entrambe le correzioni
+    ora_aggiustata = (ora_decimale + aggiustamento_mensile + correzione_precessionale) % 24
+    
+    # Tabella degli ascendenti basata sull'ora aggiustata
+    if 6 <= ora_aggiustata < 8:
+        return "Leone"
+    elif 8 <= ora_aggiustata < 10:
+        return "Vergine"
+    elif 10 <= ora_aggiustata < 12:
+        return "Bilancia"
+    elif 12 <= ora_aggiustata < 14:
+        return "Scorpione"
+    elif 14 <= ora_aggiustata < 16:
+        return "Sagittario"
+    elif 16 <= ora_aggiustata < 18:
+        return "Capricorno"
+    elif 18 <= ora_aggiustata < 20:
+        return "Acquario"
+    elif 20 <= ora_aggiustata < 22:
+        return "Pesci"
+    elif 22 <= ora_aggiustata < 24:
+        return "Ariete"
+    elif 0 <= ora_aggiustata < 2:
+        return "Toro"
+    elif 2 <= ora_aggiustata < 4:
+        return "Gemelli"
+    else:
+        return "Cancro"
+
+def calcola_gruppo_energia(data):
+    """
+    Calcola il gruppo energia basato sul giorno di nascita
+    """
+    giorno = data.day
+    return f"Gruppo {giorno % 4 + 1}"
 
 # Configurazione della pagina Streamlit
 st.set_page_config(page_title="Calcolo Astrologico", page_icon="🌟")
