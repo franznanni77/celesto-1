@@ -8,8 +8,6 @@ dell'oroscopo personalizzato utilizzando AI.
 import streamlit as st
 from datetime import datetime
 import pytz
-import asyncio
-import os
 from calcoli_astrologici import valida_numero_cellulare, genera_dati_astrologici
 from generatore_AI import GeneratoreOroscopo
 
@@ -58,10 +56,6 @@ with st.expander("ℹ️ Informazioni sulla precisione dei calcoli"):
     - Calcolo preciso dell'ora siderale
     - Validazione del formato numero di telefono italiano
     - Generazione di oroscopo personalizzato con AI
-    
-    La precessione degli equinozi è un fenomeno astronomico che causa uno spostamento 
-    graduale dei punti equinoziali di circa 1 grado ogni 72 anni, influenzando il 
-    calcolo dell'ascendente nel lungo periodo.
     """)
 
 # Form per l'inserimento dei dati
@@ -116,6 +110,15 @@ if submit:
                 # Generiamo i dati astrologici
                 dati_astrologici = genera_dati_astrologici(data_nascita, ora_nascita)
                 
+                # Aggiungiamo il nome ai dati astrologici per il generatore AI
+                dati_completi = {
+                    **dati_astrologici,  # Tutti i dati astrologici
+                    "nome": nome  # Il nome dell'utente
+                }
+                
+                # Debug - Visualizza i dati che verranno inviati al generatore
+                # print("Dati inviati al generatore:", dati_completi)
+                
                 # Visualizziamo i risultati principali
                 st.success(f"Profilo astrologico di {nome}")
                 
@@ -142,24 +145,20 @@ if submit:
                 try:
                     generatore = GeneratoreOroscopo()
                     with st.spinner("Generazione del tuo oroscopo personalizzato..."):
-                        oroscopo = generatore.genera_oroscopo(dati_astrologici)
-
+                        oroscopo = generatore.genera_oroscopo(dati_completi)
                     
                     # Visualizzazione dell'oroscopo in un box dedicato
                     st.markdown(f"""
                     <div style='background-color: #f0f2f6; padding: 20px; border-radius: 10px;'>
-                        {oroscopo['testo']}
-                        <br><br>
-                        <strong>Numeri fortunati:</strong> {oroscopo['numeri_fortunati']}
+                        {oroscopo}
                     </div>
                     """, unsafe_allow_html=True)
                     
                 except Exception as e:
-                    st.error("""
-                    Mi dispiace, si è verificato un errore nella generazione dell'oroscopo.
-                    Per favore, riprova più tardi.
+                    st.error(f"""
+                    Si è verificato un errore nella generazione dell'oroscopo.
+                    Dettagli: {str(e)}
                     """)
-                    print(f"Errore nella generazione dell'oroscopo: {str(e)}")
                 
             except Exception as e:
                 st.error("""
