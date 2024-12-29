@@ -191,6 +191,13 @@ with st.form("dati_personali"):
             help="Inserisci un numero di cellulare italiano (es. +39 345 1234567)"
         )
         
+        # Aggiungi la casella di spunta per l'invio WhatsApp
+        invia_whatsapp = st.checkbox(
+            "Invia oroscopo via WhatsApp",
+            value=True,  # Spuntato di default
+            help="Deseleziona se non vuoi ricevere l'oroscopo via WhatsApp"
+        )
+        
     with col2:
         ora_nascita = st.time_input(
             "Ora di nascita",
@@ -273,18 +280,19 @@ if submit:
                         if salva_oroscopo_db(conn, dati_completi, oroscopo):
                             st.success("Oroscopo salvato con successo nel database!")
                             
-                            # Inviamo l'oroscopo via WhatsApp
-                            try:
-                                with st.spinner("Invio dell'oroscopo via WhatsApp..."):
-                                    sender = WhatsAppSender()
-                                    if sender.invia_oroscopo(cellulare, dati_completi, oroscopo):
-                                        st.success("Oroscopo inviato via WhatsApp!")
-                                    else:
-                                        st.warning("Non è stato possibile inviare l'oroscopo via WhatsApp. "
-                                                "Puoi comunque visualizzarlo qui sopra.")
-                            except Exception as e:
-                                print(f"Errore nell'invio WhatsApp: {str(e)}")
-                                st.warning("Servizio WhatsApp temporaneamente non disponibile.")
+                            # Inviamo l'oroscopo via WhatsApp solo se l'opzione è attiva
+                            if invia_whatsapp:
+                                try:
+                                    with st.spinner("Invio dell'oroscopo via WhatsApp..."):
+                                        sender = WhatsAppSender()
+                                        if sender.invia_oroscopo(cellulare, dati_completi, oroscopo):
+                                            st.success("Oroscopo inviato via WhatsApp!")
+                                        else:
+                                            st.warning("Non è stato possibile inviare l'oroscopo via WhatsApp. "
+                                                    "Puoi comunque visualizzarlo qui sopra.")
+                                except Exception as e:
+                                    print(f"Errore nell'invio WhatsApp: {str(e)}")
+                                    st.warning("Servizio WhatsApp temporaneamente non disponibile.")
                         
                     st.markdown(f"""
                     <div class="oroscopo-container">
