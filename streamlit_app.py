@@ -194,7 +194,7 @@ with st.form("dati_personali"):
         # Aggiungi la casella di spunta per l'invio WhatsApp
         invia_whatsapp = st.checkbox(
             "Invia oroscopo via WhatsApp",
-            value=True,  # Spuntato di default
+            value=False,  # Spuntato di default
             help="Deseleziona se non vuoi ricevere l'oroscopo via WhatsApp"
         )
         
