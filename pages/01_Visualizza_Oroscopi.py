@@ -1,10 +1,3 @@
-"""
-01_Visualizza_Oroscopi.py
-------------------------
-Pagina per visualizzare, filtrare ed esportare gli oroscopi salvati nel database.
-Include gestione avanzata delle date e funzionalità di esportazione CSV.
-"""
-
 import streamlit as st
 from datetime import datetime, timedelta, date
 import pandas as pd
@@ -72,22 +65,47 @@ def carica_oroscopi(_conn, filtri=None):
 
 def mostra_filtri():
     """
-    Crea l'interfaccia per i filtri di ricerca.
+    Crea l'interfaccia per i filtri di ricerca con pulsante di reset.
     """
     st.sidebar.header("Filtri di Ricerca")
     
-    nome_filtro = st.sidebar.text_input("Cerca per nome")
+    # Aggiungiamo il pulsante di reset all'inizio della sidebar
+    if st.sidebar.button("🔄 Reset Filtri"):
+        # Reset di tutti i valori nella session_state
+        if 'nome_filtro' in st.session_state:
+            del st.session_state.nome_filtro
+        if 'segno_filtro' in st.session_state:
+            del st.session_state.segno_filtro
+        if 'periodo_filtro' in st.session_state:
+            del st.session_state.periodo_filtro
+    
+    # Utilizziamo session_state per mantenere i valori dei filtri
+    nome_filtro = st.sidebar.text_input(
+        "Cerca per nome",
+        value=st.session_state.get('nome_filtro', ''),
+        key='nome_filtro'
+    )
     
     segni = ["Tutti", "Ariete", "Toro", "Gemelli", "Cancro", "Leone", "Vergine",
              "Bilancia", "Scorpione", "Sagittario", "Capricorno", "Acquario", "Pesci"]
-    segno_filtro = st.sidebar.selectbox("Segno Zodiacale", segni)
+    segno_filtro = st.sidebar.selectbox(
+        "Segno Zodiacale",
+        segni,
+        index=segni.index(st.session_state.get('segno_filtro', 'Tutti')),
+        key='segno_filtro'
+    )
     
     periodi = {
         "tutto": "Tutto",
         "ultima_settimana": "Ultima settimana",
         "ultimo_mese": "Ultimo mese"
     }
-    periodo_filtro = st.sidebar.selectbox("Periodo", list(periodi.values()))
+    periodo_filtro = st.sidebar.selectbox(
+        "Periodo",
+        list(periodi.values()),
+        index=list(periodi.values()).index(st.session_state.get('periodo_filtro', 'Tutto')),
+        key='periodo_filtro'
+    )
     
     filtri = {}
     if nome_filtro:
