@@ -65,7 +65,7 @@ def carica_oroscopi(_conn, filtri=None):
 
 def mostra_filtri():
     """
-    Crea l'interfaccia per i filtri di ricerca con pulsante di reset.
+    Crea l'interfaccia per i filtri di ricerca con valori iniziali puliti.
     """
     st.sidebar.header("Filtri di Ricerca")
     
@@ -79,10 +79,10 @@ def mostra_filtri():
         if 'periodo_filtro' in st.session_state:
             del st.session_state.periodo_filtro
     
-    # Utilizziamo session_state per mantenere i valori dei filtri
+    # Usiamo valori vuoti/default se non presenti nella session_state
     nome_filtro = st.sidebar.text_input(
         "Cerca per nome",
-        value=st.session_state.get('nome_filtro', ''),
+        value="",  # Default vuoto
         key='nome_filtro'
     )
     
@@ -91,7 +91,7 @@ def mostra_filtri():
     segno_filtro = st.sidebar.selectbox(
         "Segno Zodiacale",
         segni,
-        index=segni.index(st.session_state.get('segno_filtro', 'Tutti')),
+        index=0,  # Forziamo "Tutti" come default
         key='segno_filtro'
     )
     
@@ -103,12 +103,13 @@ def mostra_filtri():
     periodo_filtro = st.sidebar.selectbox(
         "Periodo",
         list(periodi.values()),
-        index=list(periodi.values()).index(st.session_state.get('periodo_filtro', 'Tutto')),
+        index=0,  # Forziamo "Tutto" come default
         key='periodo_filtro'
     )
     
+    # Costruiamo il dizionario dei filtri solo se sono stati effettivamente selezionati valori
     filtri = {}
-    if nome_filtro:
+    if nome_filtro.strip():  # Aggiungiamo .strip() per evitare spazi vuoti
         filtri['nome'] = nome_filtro
     if segno_filtro != "Tutti":
         filtri['segno'] = segno_filtro
