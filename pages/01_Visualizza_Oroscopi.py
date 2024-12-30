@@ -110,7 +110,7 @@ def mostra_filtri():
     filtri = {}
     if nome_filtro.strip():  # Aggiungiamo .strip() per evitare spazi vuoti
         filtri['nome'] = nome_filtro
-    if segno_filtro != "Tutti":
+    if segno_filtro != "Tutto":
         filtri['segno'] = segno_filtro
     # Modifica chiave: aggiungiamo il filtro periodo solo se non è "Tutto"
     if periodo_filtro != "Tutto":
